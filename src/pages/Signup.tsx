@@ -1,8 +1,18 @@
+/**
+ * Signup Page
+ * 
+ * Supports both:
+ * - GitHub OAuth
+ * - Email/Password signup
+ */
+
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Github, Bot, Mail, Lock, User, ArrowRight, Sparkles, CheckCircle2 } from "lucide-react";
+import { Github, Bot, Mail, Lock, User, ArrowRight, Sparkles, CheckCircle2, Loader2, AlertCircle } from "lucide-react";
 import { Link } from "react-router-dom";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useAuth } from "@/hooks/useAuth";
+import { AUTH } from "@/lib/api";
 
 const features = [
     "AI-powered root cause analysis",
@@ -16,28 +26,36 @@ const Signup = () => {
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const { signup, loading, error, isAuthenticated, resetError } = useAuth();
+
+    // Clear error on unmount
+    useEffect(() => {
+        return () => resetError();
+    }, [resetError]);
+
+    // Handle form submit
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        // TODO: Implement signup logic
-        console.log("Signup:", { name, email, password });
+        await signup({ name, email, password });
     };
+
+    // If already logged in, redirect happens via hook
+    if (isAuthenticated) return null;
 
     return (
         <div className="min-h-screen bg-background flex">
             {/* Left Side - Branding */}
             <div className="hidden lg:flex flex-1 bg-gradient-to-br from-primary/10 via-background to-info/10 items-center justify-center p-12 relative overflow-hidden">
-                {/* Background Decoration */}
                 <div className="absolute top-20 left-20 w-72 h-72 bg-primary/20 rounded-full blur-3xl" />
                 <div className="absolute bottom-20 right-20 w-72 h-72 bg-info/10 rounded-full blur-3xl" />
 
                 <div className="relative z-10 max-w-lg">
-                    {/* Logo */}
-                    <div className="flex items-center gap-2 mb-8">
+                    <Link to="/" className="flex items-center gap-2 mb-8">
                         <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
                             <Bot className="w-6 h-6 text-primary" />
                         </div>
                         <span className="font-bold text-2xl text-foreground">CICD.ai</span>
-                    </div>
+                    </Link>
 
                     <Badge variant="outline" className="mb-6 px-4 py-1.5 text-sm border-primary/30 bg-primary/5">
                         <Sparkles className="w-3.5 h-3.5 mr-2 text-primary" />
@@ -53,7 +71,6 @@ const Signup = () => {
                         Let AI analyze your CI/CD failures and suggest fixes in seconds, not hours.
                     </p>
 
-                    {/* Features */}
                     <ul className="space-y-4">
                         {features.map((feature) => (
                             <li key={feature} className="flex items-center gap-3">
@@ -63,7 +80,6 @@ const Signup = () => {
                         ))}
                     </ul>
 
-                    {/* Testimonial */}
                     <div className="mt-10 p-6 rounded-xl bg-card border border-border">
                         <p className="text-muted-foreground text-sm italic mb-4">
                             "CICD.ai saved our team 20+ hours per week. The AI suggestions are incredibly accurate."
@@ -85,12 +101,12 @@ const Signup = () => {
             <div className="flex-1 flex items-center justify-center px-8 py-12">
                 <div className="w-full max-w-md">
                     {/* Mobile Logo */}
-                    <div className="flex items-center gap-2 mb-8 lg:hidden">
+                    <Link to="/" className="flex items-center gap-2 mb-8 lg:hidden">
                         <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
                             <Bot className="w-6 h-6 text-primary" />
                         </div>
                         <span className="font-bold text-2xl text-foreground">CICD.ai</span>
-                    </div>
+                    </Link>
 
                     {/* Header */}
                     <div className="mb-8">
@@ -100,12 +116,17 @@ const Signup = () => {
                         </p>
                     </div>
 
+                    {/* Error Message */}
+                    {error && (
+                        <div className="mb-6 p-4 bg-destructive/10 border border-destructive/30 rounded-lg flex items-center gap-2 text-destructive text-sm">
+                            <AlertCircle className="w-4 h-4 flex-shrink-0" />
+                            {error}
+                        </div>
+                    )}
+
                     {/* GitHub OAuth Button */}
-                    <Button
-                        className="w-full h-12 text-base mb-6"
-                        asChild
-                    >
-                        <a href="/auth/github">
+                    <Button className="w-full h-12 text-base mb-6" asChild>
+                        <a href={AUTH.GITHUB}>
                             <Github className="w-5 h-5 mr-2" />
                             Sign up with GitHub
                         </a>
@@ -121,12 +142,10 @@ const Signup = () => {
                         </div>
                     </div>
 
-                    {/* Email/Password Form */}
+                    {/* Form */}
                     <form onSubmit={handleSubmit} className="space-y-4">
                         <div>
-                            <label className="text-sm font-medium text-foreground mb-2 block">
-                                Full Name
-                            </label>
+                            <label className="text-sm font-medium text-foreground mb-2 block">Full Name</label>
                             <div className="relative">
                                 <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                                 <input
@@ -136,14 +155,13 @@ const Signup = () => {
                                     placeholder="John Doe"
                                     className="h-11 w-full pl-10 pr-4 rounded-lg bg-secondary border border-border text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary/50 transition-all"
                                     required
+                                    disabled={loading}
                                 />
                             </div>
                         </div>
 
                         <div>
-                            <label className="text-sm font-medium text-foreground mb-2 block">
-                                Work Email
-                            </label>
+                            <label className="text-sm font-medium text-foreground mb-2 block">Work Email</label>
                             <div className="relative">
                                 <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                                 <input
@@ -153,14 +171,13 @@ const Signup = () => {
                                     placeholder="you@company.com"
                                     className="h-11 w-full pl-10 pr-4 rounded-lg bg-secondary border border-border text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary/50 transition-all"
                                     required
+                                    disabled={loading}
                                 />
                             </div>
                         </div>
 
                         <div>
-                            <label className="text-sm font-medium text-foreground mb-2 block">
-                                Password
-                            </label>
+                            <label className="text-sm font-medium text-foreground mb-2 block">Password</label>
                             <div className="relative">
                                 <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                                 <input
@@ -171,13 +188,23 @@ const Signup = () => {
                                     className="h-11 w-full pl-10 pr-4 rounded-lg bg-secondary border border-border text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary/50 transition-all"
                                     required
                                     minLength={8}
+                                    disabled={loading}
                                 />
                             </div>
                         </div>
 
-                        <Button type="submit" className="w-full h-11 text-base">
-                            Create Account
-                            <ArrowRight className="w-4 h-4 ml-2" />
+                        <Button type="submit" className="w-full h-11 text-base" disabled={loading}>
+                            {loading ? (
+                                <>
+                                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                    Creating account...
+                                </>
+                            ) : (
+                                <>
+                                    Create Account
+                                    <ArrowRight className="w-4 h-4 ml-2" />
+                                </>
+                            )}
                         </Button>
                     </form>
 

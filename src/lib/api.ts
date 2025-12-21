@@ -18,6 +18,8 @@ export const AUTH = {
     GITHUB_LOGIN: `${BASE_URL}/auth/github/login`,      // GET - GitHub OAuth login
     GITHUB: `${BASE_URL}/auth/github`,                  // GET - GitHub OAuth (backward compat)
     GITHUB_CALLBACK: `${BASE_URL}/auth/github/callback`,// GET - GitHub OAuth callback
+    SIGNUP: `${BASE_URL}/auth/signup`,                  // POST - Email signup
+    LOGIN: `${BASE_URL}/auth/login`,                    // POST - Email login
     ME: `${BASE_URL}/auth/me`,                          // GET - Get current user
     LOGOUT: `${BASE_URL}/auth/logout`,                  // POST - Logout
 };

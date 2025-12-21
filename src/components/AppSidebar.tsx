@@ -11,9 +11,11 @@ import {
   ChevronLeft,
   ChevronRight,
   Bot,
+  LogOut,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import { useAuth } from "@/hooks/useAuth";
 
 const navItems = [
   { title: "Dashboard", url: "/dashboard", icon: LayoutDashboard },
@@ -31,8 +33,20 @@ const configItems = [
 export function AppSidebar() {
   const [collapsed, setCollapsed] = useState(false);
   const location = useLocation();
+  const { user, logout } = useAuth();
 
   const isActive = (path: string) => location.pathname === path;
+
+  // Get user initials for avatar
+  const getInitials = () => {
+    if (user?.name) {
+      return user.name.split(" ").map(n => n[0]).join("").toUpperCase().slice(0, 2);
+    }
+    if (user?.username) {
+      return user.username.slice(0, 2).toUpperCase();
+    }
+    return "U";
+  };
 
   return (
     <aside
@@ -105,6 +119,51 @@ export function AppSidebar() {
           ))}
         </div>
       </nav>
+
+      {/* User Profile & Logout */}
+      <div className="p-3 border-t border-sidebar-border">
+        {/* User Info */}
+        <div className={cn(
+          "flex items-center gap-3 px-3 py-2 mb-2 rounded-lg bg-sidebar-accent/50",
+          collapsed && "justify-center px-0"
+        )}>
+          {user?.avatarUrl ? (
+            <img
+              src={user.avatarUrl}
+              alt="Avatar"
+              className="w-8 h-8 rounded-full"
+            />
+          ) : (
+            <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center text-primary text-sm font-medium">
+              {getInitials()}
+            </div>
+          )}
+          {!collapsed && (
+            <div className="flex-1 min-w-0 animate-fade-in">
+              <p className="text-sm font-medium text-foreground truncate">
+                {user?.name || user?.username || "User"}
+              </p>
+              <p className="text-xs text-muted-foreground truncate">
+                {user?.email || ""}
+              </p>
+            </div>
+          )}
+        </div>
+
+        {/* Logout Button */}
+        <Button
+          variant="ghost"
+          size="sm"
+          className={cn(
+            "w-full text-muted-foreground hover:text-destructive hover:bg-destructive/10",
+            collapsed ? "justify-center" : "justify-start"
+          )}
+          onClick={logout}
+        >
+          <LogOut className="w-4 h-4" />
+          {!collapsed && <span className="ml-2 animate-fade-in">Logout</span>}
+        </Button>
+      </div>
 
       {/* Collapse Toggle */}
       <div className="p-3 border-t border-sidebar-border">
