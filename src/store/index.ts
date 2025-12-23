@@ -19,3 +19,18 @@ export {
     clearAuth,
 } from "./slices/authSlice";
 export type { User } from "./slices/authSlice";
+
+// Export dashboard slice actions and types
+export {
+    setStats,
+    setRecentFailures,
+    setActivity,
+    setFailureCategories,
+    clearDashboard,
+} from "./slices/dashboardSlice";
+export type {
+    DashboardStats,
+    RecentFailure,
+    ActivityItem,
+    FailureCategory,
+} from "./slices/dashboardSlice";

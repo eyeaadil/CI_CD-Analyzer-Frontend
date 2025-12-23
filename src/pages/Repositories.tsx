@@ -1,135 +1,56 @@
 import { AppSidebar } from "@/components/AppSidebar";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Progress } from "@/components/ui/progress";
 import {
   Search,
-  Bell,
   Plus,
   Filter,
   GitBranch,
   FolderGit2,
-  CircleDollarSign,
   Sparkles,
   AlertTriangle,
   CheckCircle2,
+  RefreshCw,
+  Loader2,
+  ExternalLink,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-
-interface Repository {
-  id: string;
-  name: string;
-  branch: string;
-  healthScore: number;
-  alert?: {
-    type: "critical" | "warning" | "success";
-    title: string;
-    description: string;
-  };
-  language: string;
-  languageColor: string;
-  lastActivity: string;
-}
-
-const repositories: Repository[] = [
-  {
-    id: "1",
-    name: "frontend-monorepo",
-    branch: "main",
-    healthScore: 45,
-    alert: {
-      type: "critical",
-      title: "Critical Pattern Detected",
-      description: "Flaky test in auth.spec.ts causing 30% of failures.",
-    },
-    language: "TypeScript",
-    languageColor: "bg-primary",
-    lastActivity: "4m ago",
-  },
-  {
-    id: "2",
-    name: "backend-api-core",
-    branch: "develop",
-    healthScore: 98,
-    alert: {
-      type: "success",
-      title: "Healthy Pipeline",
-      description: "Build times improved by 12% this week.",
-    },
-    language: "JavaScript",
-    languageColor: "bg-warning",
-    lastActivity: "1h ago",
-  },
-  {
-    id: "3",
-    name: "payments-service",
-    branch: "staging",
-    healthScore: 72,
-    alert: {
-      type: "warning",
-      title: "Slow Build Detected",
-      description: "Docker layer caching missed in 4 recent runs.",
-    },
-    language: "GoLang",
-    languageColor: "bg-info",
-    lastActivity: "2h ago",
-  },
-  {
-    id: "4",
-    name: "docs-portal",
-    branch: "prod",
-    healthScore: 95,
-    alert: {
-      type: "success",
-      title: "No Issues Detected",
-      description: "Pipeline is running smoothly.",
-    },
-    language: "TypeScript",
-    languageColor: "bg-primary",
-    lastActivity: "5h ago",
-  },
-  {
-    id: "5",
-    name: "legacy-auth-service",
-    branch: "v1.2-patch",
-    healthScore: 32,
-    alert: {
-      type: "critical",
-      title: "Anomaly Detected",
-      description: "Unusual timeout spike post-deployment.",
-    },
-    language: "Java",
-    languageColor: "bg-destructive",
-    lastActivity: "1d ago",
-  },
-];
+import { useRepos, Repository } from "@/hooks/useRepos";
+import { useState } from "react";
 
 function HealthBar({ score }: { score: number }) {
   // Color based on score
-  const getColor = () => {
+  const getActiveColor = () => {
     if (score >= 80) return "bg-success";
     if (score >= 50) return "bg-warning";
     return "bg-destructive";
   };
 
+  // Inactive bar color (visible)
+  const inactiveColor = "bg-muted";
+
   const bars = [
-    { threshold: 20, height: 8 },
-    { threshold: 40, height: 14 },
-    { threshold: 60, height: 20 },
-    { threshold: 80, height: 26 },
-    { threshold: 100, height: 70 },
+    { threshold: 20, height: 10 },
+    { threshold: 40, height: 16 },
+    { threshold: 60, height: 22 },
+    { threshold: 80, height: 28 },
+    { threshold: 100, height: 34 },
   ];
 
   return (
     <div className="flex items-end gap-1.5 h-10 mt-2">
-      {bars.map((bar) => {
-        const isActive = score >= bar.threshold - 19;
+      {bars.map((bar, index) => {
+        // Calculate how many bars should be active based on score
+        // At 0% = 0 bars active, at 20% = 1 bar, at 40% = 2 bars, etc.
+        const activeBarCount = Math.ceil(score / 20);
+        const isActive = index < activeBarCount;
+
         return (
           <div
             key={bar.threshold}
             className={cn(
-              "w-9 transition-all duration-500",
-              isActive ? getColor() : "bg-muted/40"
+              "w-8 transition-all duration-500 rounded-sm",
+              isActive ? getActiveColor() : inactiveColor
             )}
             style={{ height: `${bar.height}px` }}
           />
@@ -139,27 +60,48 @@ function HealthBar({ score }: { score: number }) {
   );
 }
 
-
-
-function RepoCard({ repo, delay }: { repo: Repository; delay: number }) {
+function RepoCard({
+  repo,
+  healthScore,
+  status,
+  delay
+}: {
+  repo: Repository;
+  healthScore: number;
+  status: "healthy" | "warning" | "critical";
+  delay: number;
+}) {
   const scoreColor =
-    repo.healthScore >= 80
+    healthScore >= 80
       ? "text-success border-success"
-      : repo.healthScore >= 50
+      : healthScore >= 50
         ? "text-warning border-warning"
         : "text-destructive border-destructive";
 
-  const alertIcon = {
-    critical: <AlertTriangle className="w-3 h-3" />,
-    warning: <AlertTriangle className="w-3 h-3" />,
-    success: <CheckCircle2 className="w-3 h-3" />,
+  const alertConfig = {
+    critical: {
+      icon: <AlertTriangle className="w-3 h-3" />,
+      color: "text-destructive",
+      title: "High Failure Rate",
+      description: `${repo.failureCount7d} failures in the last 7 days`,
+    },
+    warning: {
+      icon: <AlertTriangle className="w-3 h-3" />,
+      color: "text-warning",
+      title: "Moderate Issues",
+      description: `${repo.failureRate7d.toFixed(0)}% failure rate this week`,
+    },
+    healthy: {
+      icon: <CheckCircle2 className="w-3 h-3" />,
+      color: "text-success",
+      title: "Healthy Pipeline",
+      description: repo.totalRuns7d > 0
+        ? `${repo.totalRuns7d - repo.failureCount7d} successful runs this week`
+        : "No recent activity",
+    },
   };
 
-  const alertColor = {
-    critical: "text-destructive",
-    warning: "text-warning",
-    success: "text-success",
-  };
+  const alert = alertConfig[status];
 
   return (
     <div
@@ -177,7 +119,7 @@ function RepoCard({ repo, delay }: { repo: Repository; delay: number }) {
             </h3>
             <div className="flex items-center gap-1 text-xs text-muted-foreground">
               <GitBranch className="w-3 h-3" />
-              {repo.branch}
+              {repo.owner}
             </div>
           </div>
         </div>
@@ -187,38 +129,85 @@ function RepoCard({ repo, delay }: { repo: Repository; delay: number }) {
             scoreColor
           )}
         >
-          {repo.healthScore}%
+          {healthScore}%
         </div>
       </div>
 
-      <HealthBar score={repo.healthScore} />
+      <HealthBar score={healthScore} />
 
-      {repo.alert && (
-        <div className="mt-4 pt-4 border-t border-border">
-          <div className={cn("flex items-start gap-2", alertColor[repo.alert.type])}>
-            {alertIcon[repo.alert.type]}
-            <div>
-              <p className="text-xs font-medium">{repo.alert.title}</p>
-              <p className="text-[10px] text-muted-foreground mt-0.5">
-                {repo.alert.description}
-              </p>
-            </div>
+      {/* Stats Row */}
+      <div className="flex items-center gap-4 mt-4 pt-4 border-t border-border">
+        <div className="text-center flex-1">
+          <p className="text-lg font-bold text-foreground">{repo.totalRuns}</p>
+          <p className="text-[10px] text-muted-foreground">Total Runs</p>
+        </div>
+        <div className="text-center flex-1">
+          <p className="text-lg font-bold text-destructive">{repo.failureCount7d}</p>
+          <p className="text-[10px] text-muted-foreground">Failures (7d)</p>
+        </div>
+        <div className="text-center flex-1">
+          <p className="text-lg font-bold text-success">{repo.totalRuns7d - repo.failureCount7d}</p>
+          <p className="text-[10px] text-muted-foreground">Success (7d)</p>
+        </div>
+      </div>
+
+      {/* Alert */}
+      <div className="mt-4 pt-4 border-t border-border">
+        <div className={cn("flex items-start gap-2", alert.color)}>
+          {alert.icon}
+          <div>
+            <p className="text-xs font-medium">{alert.title}</p>
+            <p className="text-[10px] text-muted-foreground mt-0.5">
+              {alert.description}
+            </p>
           </div>
         </div>
-      )}
+      </div>
 
+      {/* Footer */}
       <div className="flex items-center justify-between mt-4 pt-4 border-t border-border">
         <div className="flex items-center gap-1.5">
-          <div className={cn("w-2 h-2 rounded-full", repo.languageColor)} />
-          <span className="text-xs text-muted-foreground">{repo.language}</span>
+          <div className={cn("w-2 h-2 rounded-full", repo.isPrivate ? "bg-warning" : "bg-success")} />
+          <span className="text-xs text-muted-foreground">{repo.isPrivate ? "Private" : "Public"}</span>
         </div>
-        <span className="text-[10px] text-muted-foreground">{repo.lastActivity}</span>
+        <a
+          href={`https://github.com/${repo.fullName}`}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-[10px] text-muted-foreground hover:text-primary flex items-center gap-1"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <ExternalLink className="w-3 h-3" />
+          View on GitHub
+        </a>
       </div>
     </div>
   );
 }
 
 const Repositories = () => {
+  const { repos, loading, error, refresh, syncRepos, getHealthScore, getStatus } = useRepos();
+  const [searchQuery, setSearchQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState<"all" | "healthy" | "warning" | "critical">("all");
+
+  // Filter repos
+  const filteredRepos = repos.filter(repo => {
+    const matchesSearch = repo.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      repo.owner.toLowerCase().includes(searchQuery.toLowerCase());
+
+    if (!matchesSearch) return false;
+
+    if (statusFilter === "all") return true;
+
+    const status = getStatus(getHealthScore(repo));
+    return status === statusFilter;
+  });
+
+  // Stats
+  const healthyCount = repos.filter(r => getStatus(getHealthScore(r)) === "healthy").length;
+  const warningCount = repos.filter(r => getStatus(getHealthScore(r)) === "warning").length;
+  const criticalCount = repos.filter(r => getStatus(getHealthScore(r)) === "critical").length;
+
   return (
     <div className="flex min-h-screen w-full bg-background">
       <AppSidebar />
@@ -226,39 +215,49 @@ const Repositories = () => {
       <main className="flex-1 flex flex-col overflow-hidden">
         {/* Header */}
         <header className="flex items-center justify-between px-6 py-4 border-b border-border">
-          <div className="text-sm text-muted-foreground">
-            <span>DevOps Corp</span>
-            <span className="mx-2">/</span>
-            <span>Projects</span>
-            <span className="mx-2">/</span>
-            <Badge variant="outline" className="text-xs">Repositories</Badge>
+          <div>
+            <h1 className="text-xl font-bold text-foreground">Repositories</h1>
+            <p className="text-sm text-muted-foreground">
+              Monitor CI/CD health and AI-detected failure patterns across your connected repos.
+            </p>
           </div>
 
-          <div className="flex items-center gap-3">
-            <Button variant="ghost" size="icon" className="relative">
-              <Bell className="w-5 h-5" />
-              <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-destructive" />
+          <div className="flex items-center gap-2">
+            <Button variant="outline" onClick={refresh} disabled={loading}>
+              {loading ? (
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              ) : (
+                <RefreshCw className="w-4 h-4 mr-2" />
+              )}
+              Refresh
             </Button>
-            <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center text-primary font-medium text-sm">
-              JD
-            </div>
+            <Button onClick={syncRepos} disabled={loading}>
+              <Plus className="w-4 h-4 mr-2" />
+              Sync from GitHub
+            </Button>
           </div>
         </header>
 
         {/* Content */}
         <div className="flex-1 overflow-y-auto p-6">
-          {/* Page Header */}
-          <div className="flex items-start justify-between mb-6">
-            <div>
-              <h1 className="text-2xl font-bold text-foreground">Repositories</h1>
-              <p className="text-sm text-muted-foreground mt-1">
-                Monitor CI/CD health and AI-detected failure patterns across your organization.
-              </p>
+          {/* Stats Summary */}
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+            <div className="rounded-xl border border-border bg-card p-4">
+              <p className="text-2xl font-bold text-foreground">{repos.length}</p>
+              <p className="text-xs text-muted-foreground">Total Repositories</p>
             </div>
-            <Button>
-              <Plus className="w-4 h-4 mr-2" />
-              Add Repository
-            </Button>
+            <div className="rounded-xl border border-border bg-card p-4">
+              <p className="text-2xl font-bold text-success">{healthyCount}</p>
+              <p className="text-xs text-muted-foreground">Healthy</p>
+            </div>
+            <div className="rounded-xl border border-border bg-card p-4">
+              <p className="text-2xl font-bold text-warning">{warningCount}</p>
+              <p className="text-xs text-muted-foreground">Warning</p>
+            </div>
+            <div className="rounded-xl border border-border bg-card p-4">
+              <p className="text-2xl font-bold text-destructive">{criticalCount}</p>
+              <p className="text-xs text-muted-foreground">Critical</p>
+            </div>
           </div>
 
           {/* Filters */}
@@ -267,45 +266,117 @@ const Repositories = () => {
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <input
                 type="text"
-                placeholder="Search repositories... (Cmd+K)"
+                placeholder="Search repositories..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
                 className="h-10 w-full pl-9 pr-4 rounded-lg bg-secondary border border-border text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary/50 transition-all"
               />
             </div>
 
             <div className="flex items-center gap-2">
-              <Button variant="outline" size="sm">
-                Status: All
+              <Button
+                variant={statusFilter === "all" ? "default" : "outline"}
+                size="sm"
+                onClick={() => setStatusFilter("all")}
+              >
+                All ({repos.length})
               </Button>
-              <Button variant="outline" size="sm">
-                Language: All
+              <Button
+                variant={statusFilter === "healthy" ? "default" : "outline"}
+                size="sm"
+                onClick={() => setStatusFilter("healthy")}
+              >
+                <CheckCircle2 className="w-3 h-3 mr-1 text-success" />
+                Healthy ({healthyCount})
               </Button>
-              <Button variant="outline" size="sm">
-                Provider: GitHub
+              <Button
+                variant={statusFilter === "warning" ? "default" : "outline"}
+                size="sm"
+                onClick={() => setStatusFilter("warning")}
+              >
+                <AlertTriangle className="w-3 h-3 mr-1 text-warning" />
+                Warning ({warningCount})
               </Button>
-              <Button variant="ghost" size="sm">
-                <Filter className="w-4 h-4 mr-1" />
-                More filters
+              <Button
+                variant={statusFilter === "critical" ? "default" : "outline"}
+                size="sm"
+                onClick={() => setStatusFilter("critical")}
+              >
+                <AlertTriangle className="w-3 h-3 mr-1 text-destructive" />
+                Critical ({criticalCount})
               </Button>
             </div>
           </div>
+
+          {/* Error State */}
+          {error && (
+            <div className="rounded-xl border border-destructive/50 bg-destructive/10 p-4 mb-6 text-destructive">
+              {error}
+            </div>
+          )}
+
+          {/* Loading State */}
+          {loading && repos.length === 0 && (
+            <div className="flex items-center justify-center h-64">
+              <Loader2 className="w-8 h-8 animate-spin text-primary" />
+            </div>
+          )}
+
+          {/* Empty State */}
+          {!loading && repos.length === 0 && (
+            <div className="text-center py-16">
+              <FolderGit2 className="w-16 h-16 mx-auto text-muted-foreground mb-4" />
+              <h3 className="text-lg font-semibold text-foreground mb-2">No repositories connected</h3>
+              <p className="text-sm text-muted-foreground mb-4">
+                Sync your GitHub repositories to start monitoring CI/CD health.
+              </p>
+              <Button onClick={syncRepos} disabled={loading}>
+                <Plus className="w-4 h-4 mr-2" />
+                Sync from GitHub
+              </Button>
+            </div>
+          )}
 
           {/* Repository Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
-            {repositories.map((repo, index) => (
-              <RepoCard key={repo.id} repo={repo} delay={index * 100} />
-            ))}
+          {!loading && (
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
+              {filteredRepos.map((repo, index) => (
+                <RepoCard
+                  key={repo.id}
+                  repo={repo}
+                  healthScore={getHealthScore(repo)}
+                  status={getStatus(getHealthScore(repo))}
+                  delay={index * 100}
+                />
+              ))}
 
-            {/* Connect Repository Card */}
-            <div className="rounded-xl border border-dashed border-border bg-card/50 p-5 flex flex-col items-center justify-center min-h-[280px] hover:border-primary/50 transition-colors cursor-pointer group animate-fade-in" style={{ animationDelay: "500ms" }}>
-              <div className="w-12 h-12 rounded-full bg-secondary flex items-center justify-center mb-3 group-hover:bg-primary/10 transition-colors">
-                <Plus className="w-6 h-6 text-muted-foreground group-hover:text-primary transition-colors" />
+              {/* Connect Repository Card */}
+              <div
+                className="rounded-xl border border-dashed border-border bg-card/50 p-5 flex flex-col items-center justify-center min-h-[280px] hover:border-primary/50 transition-colors cursor-pointer group animate-fade-in"
+                style={{ animationDelay: `${filteredRepos.length * 100}ms` }}
+                onClick={syncRepos}
+              >
+                <div className="w-12 h-12 rounded-full bg-secondary flex items-center justify-center mb-3 group-hover:bg-primary/10 transition-colors">
+                  <Plus className="w-6 h-6 text-muted-foreground group-hover:text-primary transition-colors" />
+                </div>
+                <h3 className="font-semibold text-foreground mb-1">Connect Repository</h3>
+                <p className="text-xs text-muted-foreground text-center">
+                  Import from GitHub to<br />start analyzing CI/CD failures.
+                </p>
               </div>
-              <h3 className="font-semibold text-foreground mb-1">Connect Repository</h3>
-              <p className="text-xs text-muted-foreground text-center">
-                Import from GitHub, GitLab or<br />Bitbucket to start analyzing.
+            </div>
+          )}
+
+          {/* No Results */}
+          {!loading && repos.length > 0 && filteredRepos.length === 0 && (
+            <div className="text-center py-16">
+              <Search className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
+              <h3 className="text-lg font-semibold text-foreground mb-2">No matches found</h3>
+              <p className="text-sm text-muted-foreground">
+                Try adjusting your search or filters.
               </p>
             </div>
-          </div>
+          )}
         </div>
 
         {/* Footer */}
@@ -313,7 +384,7 @@ const Repositories = () => {
           <div className="flex items-center gap-2">
             <Sparkles className="w-4 h-4 text-primary" />
             <span className="text-xs text-muted-foreground">
-              <span className="font-medium text-foreground">Pro Plan</span> · 8/10 Seats used
+              <span className="font-medium text-foreground">{repos.length} Repositories</span> · Last synced: just now
             </span>
           </div>
         </footer>
