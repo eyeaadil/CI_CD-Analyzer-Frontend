@@ -1,4 +1,5 @@
 import { AppSidebar } from "@/components/AppSidebar";
+import { RepoSelectionModal } from "@/components/RepoSelectionModal";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -13,10 +14,12 @@ import {
   RefreshCw,
   Loader2,
   ExternalLink,
+  Trash2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useRepos, Repository } from "@/hooks/useRepos";
 import { useState } from "react";
+
 
 function HealthBar({ score }: { score: number }) {
   // Color based on score
@@ -64,12 +67,14 @@ function RepoCard({
   repo,
   healthScore,
   status,
-  delay
+  delay,
+  onDelete,
 }: {
   repo: Repository;
   healthScore: number;
   status: "healthy" | "warning" | "critical";
   delay: number;
+  onDelete: (id: number) => void;
 }) {
   const scoreColor =
     healthScore >= 80
@@ -170,25 +175,53 @@ function RepoCard({
           <div className={cn("w-2 h-2 rounded-full", repo.isPrivate ? "bg-warning" : "bg-success")} />
           <span className="text-xs text-muted-foreground">{repo.isPrivate ? "Private" : "Public"}</span>
         </div>
-        <a
-          href={`https://github.com/${repo.fullName}`}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="text-[10px] text-muted-foreground hover:text-primary flex items-center gap-1"
-          onClick={(e) => e.stopPropagation()}
-        >
-          <ExternalLink className="w-3 h-3" />
-          View on GitHub
-        </a>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              if (confirm(`Remove "${repo.name}" from tracking?`)) {
+                onDelete(repo.id);
+              }
+            }}
+            className="text-[10px] text-muted-foreground hover:text-destructive flex items-center gap-1 transition-colors"
+          >
+            <Trash2 className="w-3 h-3" />
+            Remove
+          </button>
+          <a
+            href={`https://github.com/${repo.fullName}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-[10px] text-muted-foreground hover:text-primary flex items-center gap-1"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <ExternalLink className="w-3 h-3" />
+            GitHub
+          </a>
+        </div>
       </div>
     </div>
   );
 }
 
 const Repositories = () => {
-  const { repos, loading, error, refresh, syncRepos, getHealthScore, getStatus } = useRepos();
+  const {
+    repos,
+    availableRepos,
+    loading,
+    loadingAvailable,
+    error,
+    refresh,
+    fetchAvailableRepos,
+    importSelectedRepos,
+    removeRepo,
+    getHealthScore,
+    getStatus
+  } = useRepos();
+
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<"all" | "healthy" | "warning" | "critical">("all");
+  const [modalOpen, setModalOpen] = useState(false);
 
   // Filter repos
   const filteredRepos = repos.filter(repo => {
@@ -208,9 +241,21 @@ const Repositories = () => {
   const warningCount = repos.filter(r => getStatus(getHealthScore(r)) === "warning").length;
   const criticalCount = repos.filter(r => getStatus(getHealthScore(r)) === "critical").length;
 
+  const openModal = () => setModalOpen(true);
+
   return (
     <div className="flex min-h-screen w-full bg-background">
       <AppSidebar />
+
+      {/* Repository Selection Modal */}
+      <RepoSelectionModal
+        open={modalOpen}
+        onOpenChange={setModalOpen}
+        repos={availableRepos}
+        loading={loadingAvailable}
+        onImport={importSelectedRepos}
+        onFetch={fetchAvailableRepos}
+      />
 
       <main className="flex-1 flex flex-col overflow-hidden">
         {/* Header */}
@@ -231,9 +276,9 @@ const Repositories = () => {
               )}
               Refresh
             </Button>
-            <Button onClick={syncRepos} disabled={loading}>
+            <Button onClick={openModal} disabled={loading}>
               <Plus className="w-4 h-4 mr-2" />
-              Sync from GitHub
+              Add Repository
             </Button>
           </div>
         </header>
@@ -328,11 +373,11 @@ const Repositories = () => {
               <FolderGit2 className="w-16 h-16 mx-auto text-muted-foreground mb-4" />
               <h3 className="text-lg font-semibold text-foreground mb-2">No repositories connected</h3>
               <p className="text-sm text-muted-foreground mb-4">
-                Sync your GitHub repositories to start monitoring CI/CD health.
+                Import your GitHub repositories to start monitoring CI/CD health.
               </p>
-              <Button onClick={syncRepos} disabled={loading}>
+              <Button onClick={openModal} disabled={loading}>
                 <Plus className="w-4 h-4 mr-2" />
-                Sync from GitHub
+                Add Repository
               </Button>
             </div>
           )}
@@ -347,6 +392,7 @@ const Repositories = () => {
                   healthScore={getHealthScore(repo)}
                   status={getStatus(getHealthScore(repo))}
                   delay={index * 100}
+                  onDelete={removeRepo}
                 />
               ))}
 
@@ -354,12 +400,12 @@ const Repositories = () => {
               <div
                 className="rounded-xl border border-dashed border-border bg-card/50 p-5 flex flex-col items-center justify-center min-h-[280px] hover:border-primary/50 transition-colors cursor-pointer group animate-fade-in"
                 style={{ animationDelay: `${filteredRepos.length * 100}ms` }}
-                onClick={syncRepos}
+                onClick={openModal}
               >
                 <div className="w-12 h-12 rounded-full bg-secondary flex items-center justify-center mb-3 group-hover:bg-primary/10 transition-colors">
                   <Plus className="w-6 h-6 text-muted-foreground group-hover:text-primary transition-colors" />
                 </div>
-                <h3 className="font-semibold text-foreground mb-1">Connect Repository</h3>
+                <h3 className="font-semibold text-foreground mb-1">Add Repository</h3>
                 <p className="text-xs text-muted-foreground text-center">
                   Import from GitHub to<br />start analyzing CI/CD failures.
                 </p>
@@ -394,3 +440,4 @@ const Repositories = () => {
 };
 
 export default Repositories;
+

@@ -264,18 +264,37 @@ function FailureCard({
 
             {/* AI Analysis Section */}
             {failure.analysis ? (
-                <div className="rounded-lg p-3 mb-3 bg-primary/5 border border-primary/10">
-                    <div className="flex items-start gap-2">
-                        <Zap className="w-4 h-4 text-primary mt-0.5 flex-shrink-0" />
-                        <div className="flex-1 min-w-0">
-                            <p className="text-xs font-medium text-primary">
-                                AI Analysis Available
-                            </p>
-                            <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
-                                {failure.analysis.rootCause}
-                            </p>
+                <div className="space-y-2 mb-3">
+                    {/* Root Cause */}
+                    <div className="rounded-lg p-3 bg-destructive/5 border border-destructive/20">
+                        <div className="flex items-start gap-2">
+                            <AlertTriangle className="w-4 h-4 text-destructive mt-0.5 flex-shrink-0" />
+                            <div className="flex-1 min-w-0">
+                                <p className="text-xs font-medium text-destructive">
+                                    Root Cause
+                                </p>
+                                <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
+                                    {failure.analysis.rootCause}
+                                </p>
+                            </div>
                         </div>
                     </div>
+                    {/* Suggested Fix */}
+                    {failure.analysis.suggestedFix && (
+                        <div className="rounded-lg p-3 bg-success/5 border border-success/10">
+                            <div className="flex items-start gap-2">
+                                <Lightbulb className="w-4 h-4 text-success mt-0.5 flex-shrink-0" />
+                                <div className="flex-1 min-w-0">
+                                    <p className="text-xs font-medium text-success">
+                                        Suggested Fix
+                                    </p>
+                                    <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
+                                        {failure.analysis.suggestedFix}
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    )}
                 </div>
             ) : (
                 <div className="rounded-lg p-3 mb-3 bg-secondary/50">

@@ -17,6 +17,7 @@ import Analytics from "./pages/Analytics";
 import AIInsights from "./pages/AIInsights";
 import Incidents from "./pages/Incidents";
 import Settings from "./pages/Settings";
+import Team from "./pages/Team";
 import NotFound from "./pages/NotFound";
 
 // Components
@@ -60,6 +61,9 @@ const App = () => (
             } />
             <Route path="/settings" element={
               <ProtectedRoute><Settings /></ProtectedRoute>
+            } />
+            <Route path="/team" element={
+              <ProtectedRoute><Team /></ProtectedRoute>
             } />
 
             {/* 404 */}

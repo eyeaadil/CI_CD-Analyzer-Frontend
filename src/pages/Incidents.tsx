@@ -13,133 +13,13 @@ import {
     GitBranch,
     User,
     Zap,
+    RefreshCw,
+    Loader2,
+    Lightbulb,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-
-interface Incident {
-    id: string;
-    githubRunId: string;
-    workflowName: string;
-    branch: string;
-    actor: string;
-    commitSha: string;
-    runUrl: string;
-    createdAt: string;
-    status: "active" | "resolved";
-    repo: {
-        name: string;
-        owner: string;
-        fullName: string;
-    };
-    analysis: {
-        rootCause: string;
-        failureStage: string;
-        suggestedFix: string;
-        priority: number;
-        priorityLabel: string;
-        failureType: string;
-    } | null;
-}
-
-// Mock data - will be replaced with API calls
-const incidents: Incident[] = [
-    {
-        id: "1",
-        githubRunId: "12345678",
-        workflowName: "CI Pipeline",
-        branch: "main",
-        actor: "john-dev",
-        commitSha: "a1b2c3d",
-        runUrl: "https://github.com/example/repo/actions/runs/12345678",
-        createdAt: new Date(Date.now() - 15 * 60 * 1000).toISOString(),
-        status: "active",
-        repo: {
-            name: "api-gateway",
-            owner: "acme-corp",
-            fullName: "acme-corp/api-gateway",
-        },
-        analysis: {
-            rootCause: "Database connection pool exhausted during high traffic load test. Max connections limit reached.",
-            failureStage: "Integration Tests",
-            suggestedFix: "Increase connection pool size in config or implement connection pooling with retry logic.",
-            priority: 0,
-            priorityLabel: "P0 - Critical",
-            failureType: "RUNTIME",
-        },
-    },
-    {
-        id: "2",
-        githubRunId: "12345679",
-        workflowName: "Deploy Staging",
-        branch: "feature/auth",
-        actor: "jane-dev",
-        commitSha: "b2c3d4e",
-        runUrl: "https://github.com/example/repo/actions/runs/12345679",
-        createdAt: new Date(Date.now() - 45 * 60 * 1000).toISOString(),
-        status: "active",
-        repo: {
-            name: "frontend-app",
-            owner: "acme-corp",
-            fullName: "acme-corp/frontend-app",
-        },
-        analysis: {
-            rootCause: "Docker build timeout - node_modules cache invalidated causing full reinstall.",
-            failureStage: "Build",
-            suggestedFix: "Optimize Dockerfile layer caching by copying package.json before source files.",
-            priority: 1,
-            priorityLabel: "P1 - High",
-            failureType: "BUILD",
-        },
-    },
-    {
-        id: "3",
-        githubRunId: "12345680",
-        workflowName: "Unit Tests",
-        branch: "develop",
-        actor: "bob-dev",
-        commitSha: "c3d4e5f",
-        runUrl: "https://github.com/example/repo/actions/runs/12345680",
-        createdAt: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
-        status: "resolved",
-        repo: {
-            name: "auth-service",
-            owner: "acme-corp",
-            fullName: "acme-corp/auth-service",
-        },
-        analysis: {
-            rootCause: "Flaky test in auth.spec.ts - race condition in token refresh test.",
-            failureStage: "Test",
-            suggestedFix: "Add proper async/await handling and increase timeout for token refresh test.",
-            priority: 2,
-            priorityLabel: "P2 - Medium",
-            failureType: "TEST",
-        },
-    },
-    {
-        id: "4",
-        githubRunId: "12345681",
-        workflowName: "E2E Tests",
-        branch: "main",
-        actor: "alice-dev",
-        commitSha: "d4e5f6g",
-        runUrl: "https://github.com/example/repo/actions/runs/12345681",
-        createdAt: new Date(Date.now() - 3 * 60 * 60 * 1000).toISOString(),
-        status: "active",
-        repo: {
-            name: "payments-service",
-            owner: "acme-corp",
-            fullName: "acme-corp/payments-service",
-        },
-        analysis: {
-            rootCause: "Stripe API sandbox rate limit exceeded during parallel test execution.",
-            failureStage: "E2E Tests",
-            suggestedFix: "Implement request throttling or use mock Stripe API for CI environment.",
-            priority: 1,
-            priorityLabel: "P1 - High",
-            failureType: "INFRA",
-        },
-    },
-];
+import { useIncidents, Incident } from "@/hooks/useIncidents";
+import { useState } from "react";
 
 const priorityConfig: Record<number, { color: string; badge: "destructive" | "warning" | "secondary" | "outline" }> = {
     0: { color: "text-destructive", badge: "destructive" },
@@ -164,6 +44,7 @@ function formatTimeAgo(dateString: string): string {
 function IncidentCard({ incident, delay }: { incident: Incident; delay: number }) {
     const priority = priorityConfig[incident.analysis?.priority ?? 2];
     const isActive = incident.status === "active";
+
 
     return (
         <div
@@ -231,10 +112,10 @@ function IncidentCard({ incident, delay }: { incident: Incident; delay: number }
 
                     {/* Root Cause */}
                     {incident.analysis && (
-                        <div className="bg-secondary/50 rounded-lg p-3 mb-3">
+                        <div className="bg-destructive/5 border border-destructive/20 rounded-lg p-3 mb-3">
                             <div className="flex items-center gap-2 mb-1">
-                                <AlertTriangle className="w-3.5 h-3.5 text-warning" />
-                                <span className="text-xs font-medium text-foreground">Root Cause</span>
+                                <AlertTriangle className="w-3.5 h-3.5 text-destructive" />
+                                <span className="text-xs font-medium text-destructive">Root Cause</span>
                             </div>
                             <p className="text-xs text-muted-foreground line-clamp-2">
                                 {incident.analysis.rootCause}
@@ -244,10 +125,10 @@ function IncidentCard({ incident, delay }: { incident: Incident; delay: number }
 
                     {/* Suggested Fix */}
                     {incident.analysis?.suggestedFix && (
-                        <div className="bg-primary/5 rounded-lg p-3">
+                        <div className="bg-success/5 border border-success/20 rounded-lg p-3">
                             <div className="flex items-center gap-2 mb-1">
-                                <Zap className="w-3.5 h-3.5 text-primary" />
-                                <span className="text-xs font-medium text-primary">Suggested Fix</span>
+                                <Lightbulb className="w-3.5 h-3.5 text-success" />
+                                <span className="text-xs font-medium text-success">Suggested Fix</span>
                             </div>
                             <p className="text-xs text-muted-foreground line-clamp-2">
                                 {incident.analysis.suggestedFix}
@@ -274,10 +155,30 @@ function IncidentCard({ incident, delay }: { incident: Incident; delay: number }
 }
 
 const Incidents = () => {
-    const activeCount = incidents.filter((i) => i.status === "active").length;
-    const resolvedCount = incidents.filter((i) => i.status === "resolved").length;
-    const p0Count = incidents.filter((i) => i.analysis?.priority === 0).length;
-    const p1Count = incidents.filter((i) => i.analysis?.priority === 1).length;
+    const {
+        incidents,
+        loading,
+        error,
+        activeCount,
+        resolvedCount,
+        p0Count,
+        p1Count,
+        refresh,
+    } = useIncidents();
+
+    const [searchQuery, setSearchQuery] = useState("");
+
+    // Filter incidents by search
+    const filteredIncidents = incidents.filter(incident => {
+        if (!searchQuery.trim()) return true;
+        const query = searchQuery.toLowerCase();
+        return (
+            incident.workflowName.toLowerCase().includes(query) ||
+            incident.repo.fullName.toLowerCase().includes(query) ||
+            incident.branch.toLowerCase().includes(query) ||
+            incident.actor.toLowerCase().includes(query)
+        );
+    });
 
     return (
         <div className="flex min-h-screen w-full bg-background">
@@ -295,10 +196,20 @@ const Incidents = () => {
                             Track and manage high-priority CI/CD pipeline failures.
                         </p>
                     </div>
-                    <Button variant="outline">
-                        <Download className="w-4 h-4 mr-2" />
-                        Export Report
-                    </Button>
+                    <div className="flex items-center gap-2">
+                        <Button variant="outline" onClick={refresh} disabled={loading}>
+                            {loading ? (
+                                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                            ) : (
+                                <RefreshCw className="w-4 h-4 mr-2" />
+                            )}
+                            Refresh
+                        </Button>
+                        <Button variant="outline">
+                            <Download className="w-4 h-4 mr-2" />
+                            Export Report
+                        </Button>
+                    </div>
                 </header>
 
                 {/* Content */}
@@ -348,7 +259,7 @@ const Incidents = () => {
                                 </div>
                                 <div>
                                     <p className="text-2xl font-bold text-foreground">{resolvedCount}</p>
-                                    <p className="text-xs text-muted-foreground">Resolved Today</p>
+                                    <p className="text-xs text-muted-foreground">Resolved</p>
                                 </div>
                             </div>
                         </div>
@@ -361,6 +272,8 @@ const Incidents = () => {
                             <input
                                 type="text"
                                 placeholder="Search incidents..."
+                                value={searchQuery}
+                                onChange={(e) => setSearchQuery(e.target.value)}
                                 className="h-10 w-full pl-9 pr-4 rounded-lg bg-secondary border border-border text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary/50 transition-all"
                             />
                         </div>
@@ -382,12 +295,50 @@ const Incidents = () => {
                         </div>
                     </div>
 
+                    {/* Error State */}
+                    {error && (
+                        <div className="rounded-xl border border-destructive/50 bg-destructive/10 p-4 text-destructive">
+                            {error}
+                        </div>
+                    )}
+
+                    {/* Loading State */}
+                    {loading && incidents.length === 0 && (
+                        <div className="flex items-center justify-center h-64">
+                            <Loader2 className="w-8 h-8 animate-spin text-primary" />
+                        </div>
+                    )}
+
+                    {/* Empty State */}
+                    {!loading && incidents.length === 0 && (
+                        <div className="text-center py-16">
+                            <CheckCircle2 className="w-16 h-16 mx-auto text-success mb-4" />
+                            <h3 className="text-lg font-semibold text-foreground mb-2">No incidents</h3>
+                            <p className="text-sm text-muted-foreground">
+                                All your pipelines are running smoothly. No high-priority failures detected.
+                            </p>
+                        </div>
+                    )}
+
                     {/* Incidents List */}
-                    <div className="space-y-4">
-                        {incidents.map((incident, index) => (
-                            <IncidentCard key={incident.id} incident={incident} delay={index * 100} />
-                        ))}
-                    </div>
+                    {!loading && filteredIncidents.length > 0 && (
+                        <div className="space-y-4">
+                            {filteredIncidents.map((incident, index) => (
+                                <IncidentCard key={incident.id} incident={incident} delay={index * 100} />
+                            ))}
+                        </div>
+                    )}
+
+                    {/* No Search Results */}
+                    {!loading && incidents.length > 0 && filteredIncidents.length === 0 && (
+                        <div className="text-center py-16">
+                            <Search className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
+                            <h3 className="text-lg font-semibold text-foreground mb-2">No matches found</h3>
+                            <p className="text-sm text-muted-foreground">
+                                Try adjusting your search query.
+                            </p>
+                        </div>
+                    )}
                 </div>
             </main>
         </div>
@@ -395,3 +346,4 @@ const Incidents = () => {
 };
 
 export default Incidents;
+

@@ -45,8 +45,11 @@ export const REPOS = {
     LIST: `${BASE_URL}/api/repos`,                      // GET - List all repos with stats
     GET: (id: number | string) => `${BASE_URL}/api/repos/${id}`,      // GET - Single repo with detailed stats
     RUNS: (id: number | string) => `${BASE_URL}/api/repos/${id}/runs`,// GET - Runs for a repo with filtering
-    SYNC: `${BASE_URL}/api/repos/sync`,                 // POST - Sync repos from GitHub
+    SYNC: `${BASE_URL}/api/repos/sync`,                 // POST - Import selected repos
+    AVAILABLE: `${BASE_URL}/api/repos/available`,       // GET - Fetch GitHub repos for selection
+    DELETE: (id: number | string) => `${BASE_URL}/api/repos/${id}`,   // DELETE - Remove repo from tracking
 };
+
 
 // ============================================
 // RUNS ROUTES (/api/runs)

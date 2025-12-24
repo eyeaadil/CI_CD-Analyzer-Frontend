@@ -14,96 +14,11 @@ import {
   ArrowRight,
   ExternalLink,
   RefreshCw,
+  Loader2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-
-interface Insight {
-  id: string;
-  type: "anomaly" | "pattern" | "suggestion" | "resolved";
-  severity: "critical" | "high" | "medium" | "low";
-  title: string;
-  description: string;
-  details: string;
-  confidence: number;
-  repository?: string;
-  time: string;
-  actionable: boolean;
-}
-
-const insights: Insight[] = [
-  {
-    id: "1",
-    type: "anomaly",
-    severity: "critical",
-    title: "Docker Timeout Spike Detected",
-    description: "200% increase in Docker timeout failures in staging environment",
-    details: "Pattern started 2 hours ago. Correlates with increased traffic from load testing. Recommend scaling container resources.",
-    confidence: 94,
-    repository: "api-gateway",
-    time: "2 mins ago",
-    actionable: true,
-  },
-  {
-    id: "2",
-    type: "pattern",
-    severity: "high",
-    title: "Flaky Test Pattern Identified",
-    description: "auth.spec.ts fails intermittently (15%) without code changes",
-    details: "Test relies on external API mock that occasionally times out. Consider implementing retry logic or improving mock stability.",
-    confidence: 89,
-    repository: "frontend-monorepo",
-    time: "15 mins ago",
-    actionable: true,
-  },
-  {
-    id: "3",
-    type: "suggestion",
-    severity: "medium",
-    title: "Build Time Optimization Available",
-    description: "Docker layer caching could reduce build time by 40%",
-    details: "Detected repeated dependency installations. Moving package.json copy before source code would enable better caching.",
-    confidence: 96,
-    repository: "payments-service",
-    time: "1 hour ago",
-    actionable: true,
-  },
-  {
-    id: "4",
-    type: "anomaly",
-    severity: "medium",
-    title: "Memory Usage Anomaly",
-    description: "Jest tests consuming 2x normal memory in CI",
-    details: "Started after merge of PR #4821. Possible memory leak in new utility functions.",
-    confidence: 78,
-    repository: "backend-api-core",
-    time: "2 hours ago",
-    actionable: true,
-  },
-  {
-    id: "5",
-    type: "resolved",
-    severity: "low",
-    title: "Database Connection Pool Issue Fixed",
-    description: "Connection timeout pattern no longer detected",
-    details: "Issue resolved after infrastructure team increased pool size. Monitoring for 24 hours confirmed stability.",
-    confidence: 100,
-    repository: "auth-service",
-    time: "3 hours ago",
-    actionable: false,
-  },
-  {
-    id: "6",
-    type: "suggestion",
-    severity: "low",
-    title: "Test Coverage Gap Detected",
-    description: "New payment module has 23% test coverage",
-    details: "Critical payment flow paths lack unit tests. AI suggests 12 specific test cases to add.",
-    confidence: 85,
-    repository: "payments-service",
-    time: "5 hours ago",
-    actionable: true,
-  },
-];
+import { useInsights, Insight } from "@/hooks/useInsights";
+import { useState } from "react";
 
 const typeConfig = {
   anomaly: { icon: AlertTriangle, color: "text-destructive", bg: "bg-destructive/10" },
@@ -192,8 +107,29 @@ function InsightCard({ insight, delay }: { insight: Insight; delay: number }) {
 }
 
 const AIInsights = () => {
-  const criticalCount = insights.filter((i) => i.severity === "critical").length;
-  const resolvedCount = insights.filter((i) => i.type === "resolved").length;
+  const {
+    insights,
+    summary,
+    loading,
+    criticalCount,
+    resolvedCount,
+    patternCount,
+    suggestionCount,
+    refresh,
+  } = useInsights();
+
+  const [searchQuery, setSearchQuery] = useState("");
+
+  // Filter insights by search
+  const filteredInsights = insights.filter(insight => {
+    if (!searchQuery.trim()) return true;
+    const query = searchQuery.toLowerCase();
+    return (
+      insight.title.toLowerCase().includes(query) ||
+      insight.description.toLowerCase().includes(query) ||
+      (insight.repository?.toLowerCase().includes(query) ?? false)
+    );
+  });
 
   return (
     <div className="flex min-h-screen w-full bg-background">
@@ -211,8 +147,12 @@ const AIInsights = () => {
               AI-detected anomalies, patterns, and optimization suggestions across your pipelines.
             </p>
           </div>
-          <Button variant="outline">
-            <RefreshCw className="w-4 h-4 mr-2" />
+          <Button variant="outline" onClick={refresh} disabled={loading}>
+            {loading ? (
+              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+            ) : (
+              <RefreshCw className="w-4 h-4 mr-2" />
+            )}
             Refresh Analysis
           </Button>
         </header>
@@ -227,7 +167,7 @@ const AIInsights = () => {
                   <AlertTriangle className="w-5 h-5 text-destructive" />
                 </div>
                 <div>
-                  <p className="text-2xl font-bold text-foreground">{criticalCount}</p>
+                  <p className="text-2xl font-bold text-foreground">{summary?.critical || criticalCount}</p>
                   <p className="text-xs text-muted-foreground">Critical Issues</p>
                 </div>
               </div>
@@ -239,7 +179,7 @@ const AIInsights = () => {
                   <TrendingUp className="w-5 h-5 text-warning" />
                 </div>
                 <div>
-                  <p className="text-2xl font-bold text-foreground">3</p>
+                  <p className="text-2xl font-bold text-foreground">{summary?.patterns || patternCount}</p>
                   <p className="text-xs text-muted-foreground">Patterns Found</p>
                 </div>
               </div>
@@ -251,7 +191,7 @@ const AIInsights = () => {
                   <Lightbulb className="w-5 h-5 text-primary" />
                 </div>
                 <div>
-                  <p className="text-2xl font-bold text-foreground">2</p>
+                  <p className="text-2xl font-bold text-foreground">{summary?.suggestions || suggestionCount}</p>
                   <p className="text-xs text-muted-foreground">Suggestions</p>
                 </div>
               </div>
@@ -263,7 +203,7 @@ const AIInsights = () => {
                   <CheckCircle2 className="w-5 h-5 text-success" />
                 </div>
                 <div>
-                  <p className="text-2xl font-bold text-foreground">{resolvedCount}</p>
+                  <p className="text-2xl font-bold text-foreground">{summary?.resolved || resolvedCount}</p>
                   <p className="text-xs text-muted-foreground">Resolved Today</p>
                 </div>
               </div>
@@ -277,6 +217,8 @@ const AIInsights = () => {
               <input
                 type="text"
                 placeholder="Search insights..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
                 className="h-10 w-full pl-9 pr-4 rounded-lg bg-secondary border border-border text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary/50 transition-all"
               />
             </div>
@@ -298,12 +240,43 @@ const AIInsights = () => {
             </div>
           </div>
 
+          {/* Loading State */}
+          {loading && insights.length === 0 && (
+            <div className="flex items-center justify-center h-64">
+              <Loader2 className="w-8 h-8 animate-spin text-primary" />
+            </div>
+          )}
+
+          {/* Empty State */}
+          {!loading && insights.length === 0 && (
+            <div className="text-center py-16">
+              <Brain className="w-16 h-16 mx-auto text-muted-foreground mb-4" />
+              <h3 className="text-lg font-semibold text-foreground mb-2">No insights yet</h3>
+              <p className="text-sm text-muted-foreground">
+                AI insights will appear here as your pipelines run and patterns are detected.
+              </p>
+            </div>
+          )}
+
           {/* Insights List */}
-          <div className="space-y-4">
-            {insights.map((insight, index) => (
-              <InsightCard key={insight.id} insight={insight} delay={index * 100} />
-            ))}
-          </div>
+          {!loading && filteredInsights.length > 0 && (
+            <div className="space-y-4">
+              {filteredInsights.map((insight, index) => (
+                <InsightCard key={insight.id} insight={insight} delay={index * 100} />
+              ))}
+            </div>
+          )}
+
+          {/* No Search Results */}
+          {!loading && insights.length > 0 && filteredInsights.length === 0 && (
+            <div className="text-center py-16">
+              <Search className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
+              <h3 className="text-lg font-semibold text-foreground mb-2">No matches found</h3>
+              <p className="text-sm text-muted-foreground">
+                Try adjusting your search query.
+              </p>
+            </div>
+          )}
         </div>
       </main>
     </div>
@@ -311,3 +284,4 @@ const AIInsights = () => {
 };
 
 export default AIInsights;
+
