@@ -144,6 +144,20 @@ export async function fetchAPI<T>(url: string, options?: RequestInit): Promise<T
     return res.json();
 }
 
+// Auth fetch that returns raw Response for more control
+export async function authFetch(url: string, options?: RequestInit): Promise<Response> {
+    const token = localStorage.getItem('auth_token');
+
+    return fetch(url, {
+        ...options,
+        headers: {
+            'Content-Type': 'application/json',
+            ...(token && { Authorization: `Bearer ${token}` }),
+            ...options?.headers,
+        },
+    });
+}
+
 // ============================================
 // ALL ENDPOINTS COMBINED
 // ============================================

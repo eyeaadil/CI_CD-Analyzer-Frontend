@@ -95,9 +95,9 @@ const Landing = () => {
                         <a href="#how-it-works" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
                             How it Works
                         </a>
-                        <a href="#pricing" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+                        <Link to="/pricing" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
                             Pricing
-                        </a>
+                        </Link>
                     </div>
 
                     <div className="flex items-center gap-3">

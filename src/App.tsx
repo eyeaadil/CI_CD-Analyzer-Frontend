@@ -18,6 +18,7 @@ import AIInsights from "./pages/AIInsights";
 import Incidents from "./pages/Incidents";
 import Settings from "./pages/Settings";
 import Team from "./pages/Team";
+import Pricing from "./pages/Pricing";
 import NotFound from "./pages/NotFound";
 
 // Components
@@ -41,6 +42,7 @@ const App = () => (
             <Route path="/" element={<Landing />} />
             <Route path="/login" element={<Login />} />
             <Route path="/signup" element={<Signup />} />
+            <Route path="/pricing" element={<Pricing />} />
             <Route path="/auth/callback" element={<AuthCallback />} />
 
             {/* Protected Routes - Require login */}
