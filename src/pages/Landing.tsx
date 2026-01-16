@@ -80,7 +80,7 @@ const Landing = () => {
         <div className="min-h-screen bg-background">
             {/* Navbar */}
             <nav className="fixed top-0 left-0 right-0 z-50 border-b border-border/50 bg-background/80 backdrop-blur-lg">
-                <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
+                <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
                     <div className="flex items-center gap-2">
                         <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center">
                             <Bot className="w-5 h-5 text-primary" />
@@ -100,14 +100,14 @@ const Landing = () => {
                         </Link>
                     </div>
 
-                    <div className="flex items-center gap-3">
-                        <Button variant="ghost" asChild>
+                    <div className="flex items-center gap-2 sm:gap-3">
+                        <Button variant="ghost" size="sm" className="text-sm" asChild>
                             <Link to="/login">Sign In</Link>
                         </Button>
-                        <Button asChild>
+                        <Button size="sm" className="text-sm" asChild>
                             <Link to="/signup">
-                                <Github className="w-4 h-4 mr-2" />
-                                Get Started
+                                <Github className="w-4 h-4 sm:mr-2" />
+                                <span className="hidden sm:inline">Get Started</span>
                             </Link>
                         </Button>
                     </div>
@@ -253,11 +253,10 @@ const Landing = () => {
                             <p className="text-muted-foreground mb-8 max-w-xl mx-auto">
                                 Join thousands of developers who have reduced their pipeline debugging time by 80%.
                             </p>
-                            <Button size="lg" className="text-base px-8 h-12 w-full sm:w-auto" asChild>
+                            <Button size="lg" className="text-base px-8 h-12 w-full sm:w-auto inline-flex items-center justify-center gap-2" asChild>
                                 <Link to="/login">
-                                    <Github className="w-5 h-5 mr-2" />
-                                    Start Free with GitHub
-                                    <ArrowRight className="w-4 h-4 ml-2" />
+                                    <Github className="w-5 h-5" />
+                                    <span>Start Free with GitHub</span>
                                 </Link>
                             </Button>
                             <p className="text-xs text-muted-foreground mt-4">
