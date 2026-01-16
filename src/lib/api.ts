@@ -5,10 +5,10 @@
  * Last verified: 2024-12-18
  */
 
-// Base URL - switches between local and production
-const BASE_URL = import.meta.env.DEV
-    ? 'http://localhost:3001'
-    : (import.meta.env.VITE_API_URL || 'https://api.cicd.ai');
+// Base URL - uses VITE_API_URL if set, otherwise localhost for development
+// To use production backend, set VITE_API_URL in .env.local:
+//   VITE_API_URL=https://ci-cd-analyzer.onrender.com
+const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 
 // ============================================
 // AUTH ROUTES (/auth)
