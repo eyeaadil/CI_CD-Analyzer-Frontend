@@ -141,14 +141,14 @@ const Landing = () => {
                         identifies root causes, and suggests fixes in seconds.
                     </p>
 
-                    <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-12">
-                        <Button size="lg" className="text-base px-8 h-12" asChild>
-                            <a href="/auth/github">
+                    <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-12 w-full px-4 sm:px-0">
+                        <Button size="lg" className="text-base px-8 h-12 w-full sm:w-auto" asChild>
+                            <Link to="/login">
                                 <Github className="w-5 h-5 mr-2" />
                                 Sign in with GitHub
-                            </a>
+                            </Link>
                         </Button>
-                        <Button size="lg" variant="outline" className="text-base px-8 h-12">
+                        <Button size="lg" variant="outline" className="text-base px-8 h-12 w-full sm:w-auto">
                             <Play className="w-4 h-4 mr-2" />
                             Watch Demo
                         </Button>
@@ -253,12 +253,12 @@ const Landing = () => {
                             <p className="text-muted-foreground mb-8 max-w-xl mx-auto">
                                 Join thousands of developers who have reduced their pipeline debugging time by 80%.
                             </p>
-                            <Button size="lg" className="text-base px-8 h-12" asChild>
-                                <a href="/auth/github">
+                            <Button size="lg" className="text-base px-8 h-12 w-full sm:w-auto" asChild>
+                                <Link to="/login">
                                     <Github className="w-5 h-5 mr-2" />
                                     Start Free with GitHub
                                     <ArrowRight className="w-4 h-4 ml-2" />
-                                </a>
+                                </Link>
                             </Button>
                             <p className="text-xs text-muted-foreground mt-4">
                                 Free tier available • No credit card required
