@@ -7,6 +7,7 @@
 
 import { useState, useCallback, useEffect } from "react";
 import { REPOS, fetchAPI } from "@/lib/api";
+import { store, clearDashboard } from "@/store";
 
 // Types
 export interface Repository {
@@ -95,6 +96,8 @@ export function useRepos() {
             });
             // Refetch synced repos after import
             await fetchRepos();
+            // Clear dashboard cache so stats update on next visit
+            store.dispatch(clearDashboard());
         } catch (err) {
             const message = err instanceof Error ? err.message : "Failed to import repos";
             setState(prev => ({ ...prev, error: message, loading: false }));
@@ -116,6 +119,8 @@ export function useRepos() {
                 repos: prev.repos.filter(r => r.id !== repoId),
                 loading: false,
             }));
+            // Clear dashboard cache so stats update on next visit
+            store.dispatch(clearDashboard());
         } catch (err) {
             const message = err instanceof Error ? err.message : "Failed to remove repo";
             setState(prev => ({ ...prev, error: message, loading: false }));
