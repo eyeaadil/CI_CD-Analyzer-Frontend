@@ -19,6 +19,7 @@ import Incidents from "./pages/Incidents";
 import Settings from "./pages/Settings";
 import Team from "./pages/Team";
 import Pricing from "./pages/Pricing";
+import RunDetails from "./pages/RunDetails";
 import NotFound from "./pages/NotFound";
 
 // Components
@@ -57,6 +58,9 @@ const App = () => (
             } />
             <Route path="/incidents" element={
               <ProtectedRoute><Incidents /></ProtectedRoute>
+            } />
+            <Route path="/run/:id" element={
+              <ProtectedRoute><RunDetails /></ProtectedRoute>
             } />
             <Route path="/insights" element={
               <ProtectedRoute><AIInsights /></ProtectedRoute>

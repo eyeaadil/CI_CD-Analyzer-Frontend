@@ -117,6 +117,15 @@ export const WEBHOOKS = {
 };
 
 // ============================================
+// CHAT ROUTES (/api/chat)
+// File: chat.routes.js
+// Requires: authMiddleware
+// ============================================
+export const CHAT = {
+    SEND: `${BASE_URL}/api/chat`,                       // POST - Send message
+};
+
+// ============================================
 // ANALYZE ROUTE (standalone)
 // Defined in: index.js
 // ============================================
@@ -173,6 +182,7 @@ export const API = {
     USER,
     WEBHOOKS,
     ANALYZE,
+    CHAT,
 };
 
 export default API;

@@ -1,4 +1,5 @@
 import { AppSidebar } from "@/components/AppSidebar";
+import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -145,8 +146,10 @@ function IncidentCard({ incident, delay }: { incident: Incident; delay: number }
                             GitHub
                         </a>
                     </Button>
-                    <Button size="sm" variant="ghost" className="text-primary">
-                        Details
+                    <Button size="sm" variant="ghost" className="text-primary" asChild>
+                        <Link to={`/run/${incident.id}`}>
+                            Details
+                        </Link>
                     </Button>
                 </div>
             </div>
