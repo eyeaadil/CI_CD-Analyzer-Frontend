@@ -216,7 +216,8 @@ const Repositories = () => {
     importSelectedRepos,
     removeRepo,
     getHealthScore,
-    getStatus
+    getStatus,
+    githubConnected,
   } = useRepos();
 
   const [searchQuery, setSearchQuery] = useState("");
@@ -255,6 +256,7 @@ const Repositories = () => {
         loading={loadingAvailable}
         onImport={importSelectedRepos}
         onFetch={fetchAvailableRepos}
+        githubConnected={githubConnected}
       />
 
       <main className="flex-1 flex flex-col overflow-hidden">
@@ -275,10 +277,6 @@ const Repositories = () => {
                 <RefreshCw className="w-4 h-4 mr-2" />
               )}
               Refresh
-            </Button>
-            <Button onClick={openModal} disabled={loading}>
-              <Plus className="w-4 h-4 mr-2" />
-              Add Repository
             </Button>
           </div>
         </header>
@@ -367,23 +365,27 @@ const Repositories = () => {
             </div>
           )}
 
-          {/* Empty State */}
+          {/* Empty State - Add Repository Card */}
           {!loading && repos.length === 0 && (
-            <div className="text-center py-16">
-              <FolderGit2 className="w-16 h-16 mx-auto text-muted-foreground mb-4" />
-              <h3 className="text-lg font-semibold text-foreground mb-2">No repositories connected</h3>
-              <p className="text-sm text-muted-foreground mb-4">
-                Import your GitHub repositories to start monitoring CI/CD health.
-              </p>
-              <Button onClick={openModal} disabled={loading}>
-                <Plus className="w-4 h-4 mr-2" />
-                Add Repository
-              </Button>
+            <div className="flex flex-col items-center justify-center py-16">
+              {/* Connect Repository Card */}
+              <div
+                className="rounded-xl border border-dashed border-border bg-card/50 p-8 flex flex-col items-center justify-center min-h-[280px] min-w-[320px] hover:border-primary/50 transition-colors cursor-pointer group animate-fade-in"
+                onClick={openModal}
+              >
+                <div className="w-16 h-16 rounded-full bg-secondary flex items-center justify-center mb-4 group-hover:bg-primary/10 transition-colors">
+                  <Plus className="w-8 h-8 text-muted-foreground group-hover:text-primary transition-colors" />
+                </div>
+                <h3 className="text-lg font-semibold text-foreground mb-2">Add Repository</h3>
+                <p className="text-sm text-muted-foreground text-center">
+                  Import from GitHub to<br />start analyzing CI/CD failures.
+                </p>
+              </div>
             </div>
           )}
 
           {/* Repository Grid */}
-          {!loading && (
+          {!loading && repos.length > 0 && (
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
               {filteredRepos.map((repo, index) => (
                 <RepoCard
@@ -395,21 +397,6 @@ const Repositories = () => {
                   onDelete={removeRepo}
                 />
               ))}
-
-              {/* Connect Repository Card */}
-              <div
-                className="rounded-xl border border-dashed border-border bg-card/50 p-5 flex flex-col items-center justify-center min-h-[280px] hover:border-primary/50 transition-colors cursor-pointer group animate-fade-in"
-                style={{ animationDelay: `${filteredRepos.length * 100}ms` }}
-                onClick={openModal}
-              >
-                <div className="w-12 h-12 rounded-full bg-secondary flex items-center justify-center mb-3 group-hover:bg-primary/10 transition-colors">
-                  <Plus className="w-6 h-6 text-muted-foreground group-hover:text-primary transition-colors" />
-                </div>
-                <h3 className="font-semibold text-foreground mb-1">Add Repository</h3>
-                <p className="text-xs text-muted-foreground text-center">
-                  Import from GitHub to<br />start analyzing CI/CD failures.
-                </p>
-              </div>
             </div>
           )}
 

@@ -41,6 +41,7 @@ interface ReposState {
     loading: boolean;
     loadingAvailable: boolean;
     error: string | null;
+    githubConnected: boolean | null; // null = unknown, true = connected, false = not connected
 }
 
 export function useRepos() {
@@ -50,6 +51,7 @@ export function useRepos() {
         loading: false,
         loadingAvailable: false,
         error: null,
+        githubConnected: null,
     });
 
     /**
@@ -74,9 +76,29 @@ export function useRepos() {
         try {
             setState(prev => ({ ...prev, loadingAvailable: true, error: null }));
             const data = await fetchAPI<{ repos: AvailableRepo[]; total: number; alreadySynced: number }>(REPOS.AVAILABLE);
-            setState(prev => ({ ...prev, availableRepos: data.repos, loadingAvailable: false }));
+            setState(prev => ({
+                ...prev,
+                availableRepos: data.repos,
+                loadingAvailable: false,
+                githubConnected: true // Successfully fetched = GitHub is connected
+            }));
             return data.repos;
-        } catch (err) {
+        } catch (err: unknown) {
+            // Check if this is a NO_GITHUB_TOKEN error
+            const errorObj = err as { code?: string; message?: string };
+            const isNoGithubToken = errorObj?.code === 'NO_GITHUB_TOKEN' ||
+                errorObj?.message?.includes('GitHub not connected');
+
+            if (isNoGithubToken) {
+                setState(prev => ({
+                    ...prev,
+                    githubConnected: false,
+                    loadingAvailable: false,
+                    error: null // Don't show as error, we'll show Connect GitHub UI
+                }));
+                return [];
+            }
+
             const message = err instanceof Error ? err.message : "Failed to fetch GitHub repos";
             setState(prev => ({ ...prev, error: message, loadingAvailable: false }));
             console.error("Available repos error:", err);
@@ -160,6 +182,7 @@ export function useRepos() {
         loading: state.loading,
         loadingAvailable: state.loadingAvailable,
         error: state.error,
+        githubConnected: state.githubConnected,
         fetchRepos,
         fetchAvailableRepos,
         importSelectedRepos,
