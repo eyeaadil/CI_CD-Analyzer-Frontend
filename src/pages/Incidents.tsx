@@ -27,6 +27,8 @@ const priorityConfig: Record<number, { color: string; badge: "destructive" | "wa
     1: { color: "text-warning", badge: "warning" },
     2: { color: "text-foreground", badge: "secondary" },
     3: { color: "text-muted-foreground", badge: "outline" },
+    4: { color: "text-muted-foreground", badge: "outline" },
+    5: { color: "text-muted-foreground", badge: "outline" },
 };
 
 function formatTimeAgo(dateString: string): string {
@@ -43,7 +45,7 @@ function formatTimeAgo(dateString: string): string {
 }
 
 function IncidentCard({ incident, delay }: { incident: Incident; delay: number }) {
-    const priority = priorityConfig[incident.analysis?.priority ?? 2];
+    const priority = priorityConfig[incident.analysis?.priority ?? 2] || priorityConfig[2];
     const isActive = incident.status === "active";
 
 
