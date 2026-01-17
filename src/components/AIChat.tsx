@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, forwardRef, useImperativeHandle } from "react";
 import { Send, Bot, User, Loader2, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -21,7 +21,11 @@ interface AIChatProps {
     className?: string;
 }
 
-export function AIChat({ runId, className }: AIChatProps) {
+export interface AIChatRef {
+    sendMessage: (text: string) => void;
+}
+
+export const AIChat = forwardRef<AIChatRef, AIChatProps>(({ runId, className }, ref) => {
     const [messages, setMessages] = useState<Message[]>([
         {
             id: 'welcome',
@@ -41,23 +45,31 @@ export function AIChat({ runId, className }: AIChatProps) {
         }
     }, [messages]);
 
-    const handleSend = async () => {
-        if (!input.trim() || isLoading) return;
+    const sendMessage = async (text: string) => {
+        const messageText = text.trim();
+        if (!messageText || isLoading) return;
 
         const userMsg: Message = {
             id: Date.now().toString(),
             role: 'user',
-            content: input,
+            content: messageText,
             timestamp: new Date()
         };
 
         setMessages(prev => [...prev, userMsg]);
-        setInput("");
         setIsLoading(true);
 
         try {
             // Prepare history for API
-            const history = messages.map(m => ({
+            // Use a functional update for messages to ensure we get the latest state
+            // when preparing history, especially if sendMessage is called externally.
+            let currentMessages: Message[] = [];
+            setMessages(prev => {
+                currentMessages = [...prev, userMsg]; // Include the new user message for history
+                return currentMessages;
+            });
+
+            const history = currentMessages.map(m => ({
                 role: m.role,
                 content: m.content
             }));
@@ -84,6 +96,7 @@ export function AIChat({ runId, className }: AIChatProps) {
 
             setMessages(prev => [...prev, aiMsg]);
         } catch (error) {
+            console.error(error);
             const errorMsg: Message = {
                 id: (Date.now() + 1).toString(),
                 role: 'ai',
@@ -95,6 +108,15 @@ export function AIChat({ runId, className }: AIChatProps) {
         } finally {
             setIsLoading(false);
         }
+    };
+
+    useImperativeHandle(ref, () => ({
+        sendMessage
+    }));
+
+    const handleSend = () => {
+        sendMessage(input);
+        setInput("");
     };
 
     return (
@@ -120,7 +142,7 @@ export function AIChat({ runId, className }: AIChatProps) {
                                     msg.role === 'user' ? "ml-auto flex-row-reverse" : "mr-auto"
                                 )}
                             >
-                                <Avatar className="w-8 h-8 h-8 w-8 mt-0.5 border">
+                                <Avatar className="w-8 h-8 mt-0.5 border">
                                     {msg.role === 'user' ? (
                                         <AvatarFallback><User className="w-4 h-4" /></AvatarFallback>
                                     ) : (
@@ -176,4 +198,4 @@ export function AIChat({ runId, className }: AIChatProps) {
             </CardFooter>
         </Card>
     );
-}
+});
