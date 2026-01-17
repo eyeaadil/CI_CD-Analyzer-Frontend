@@ -18,6 +18,8 @@ const AuthCallback = () => {
     useEffect(() => {
         const token = searchParams.get("token");
         const error = searchParams.get("error");
+        const linked = searchParams.get("linked");
+        const openModal = searchParams.get("openModal");
 
         if (error) {
             navigate(`/login?error=${encodeURIComponent(error)}`, { replace: true });
@@ -25,7 +27,12 @@ const AuthCallback = () => {
         }
 
         if (token) {
-            handleOAuthCallback(token);
+            // If this was a GitHub linking with openModal=true, redirect to repositories with modal open
+            if (linked && openModal) {
+                handleOAuthCallback(token, "/repositories?openModal=true");
+            } else {
+                handleOAuthCallback(token);
+            }
         } else {
             navigate("/login", { replace: true });
         }

@@ -200,7 +200,7 @@ export function useAuth() {
      * Handle OAuth callback (save token from URL)
      */
     const handleOAuthCallback = useCallback(
-        async (callbackToken: string) => {
+        async (callbackToken: string, redirectTo?: string) => {
             console.log("OAuth callback - saving token");
             localStorage.setItem("auth_token", callbackToken);
             dispatch(setToken(callbackToken));
@@ -222,9 +222,10 @@ export function useAuth() {
                 console.error("OAuth callback - error fetching user:", err);
             }
 
-            // Always navigate to dashboard
-            console.log("OAuth callback - navigating to dashboard");
-            navigate("/dashboard", { replace: true });
+            // Navigate to redirectTo or default to dashboard
+            const destination = redirectTo || "/dashboard";
+            console.log("OAuth callback - navigating to", destination);
+            navigate(destination, { replace: true });
         },
         [dispatch, navigate]
     );

@@ -18,7 +18,8 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useRepos, Repository } from "@/hooks/useRepos";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
 
 
 function HealthBar({ score }: { score: number }) {
@@ -220,9 +221,20 @@ const Repositories = () => {
     githubConnected,
   } = useRepos();
 
+  const [searchParams, setSearchParams] = useSearchParams();
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<"all" | "healthy" | "warning" | "critical">("all");
   const [modalOpen, setModalOpen] = useState(false);
+
+  // Auto-open modal if openModal=true in URL (after GitHub linking)
+  useEffect(() => {
+    if (searchParams.get("openModal") === "true") {
+      setModalOpen(true);
+      // Clean up URL
+      searchParams.delete("openModal");
+      setSearchParams(searchParams, { replace: true });
+    }
+  }, [searchParams, setSearchParams]);
 
   // Filter repos
   const filteredRepos = repos.filter(repo => {
